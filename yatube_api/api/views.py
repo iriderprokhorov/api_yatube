@@ -1,10 +1,6 @@
-from urllib import response
-from django.shortcuts import render
-
-from rest_framework import viewsets
 from django.core.exceptions import PermissionDenied
+from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework import status
 
 from posts.models import Post, Group, Comment
 from .serializers import PostSerializer, GroupSerializer, CommentSerializer
@@ -14,15 +10,18 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
+    def perform_create(self, serializer):
+        return serializer.save(author=self.request.user)
+
     def perform_update(self, serializer):
         if serializer.instance.author != self.request.user:
             raise PermissionDenied("Изменение чужого контента запрещено!")
         super(PostViewSet, self).perform_update(serializer)
 
-    def perform_destroy(self, serializer):
-        if serializer.instance.author != self.request.user:
+    def perform_destroy(self, instance):
+        if instance.author != self.request.user:
             raise PermissionDenied("Изменение чужого контента запрещено!")
-        super(PostViewSet, self).perform_destroy(serializer)
+        instance.delete()
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -34,17 +33,8 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 
 class CommentsViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-
-    def perform_update(self, serializer):
-        if serializer.instance.author != self.request.user:
-            raise PermissionDenied("Изменение чужого контента запрещено!")
-        super(CommentsViewSet, self).perform_update(serializer)
-
-    def perform_destroy(self, serializer):
-        if serializer.instance.author != self.request.user:
-            raise PermissionDenied("Изменение чужого контента запрещено!")
-        super(CommentsViewSet, self).perform_destroy(serializer)
 
     def get_queryset(self):
         # Получаем post_id
@@ -52,3 +42,16 @@ class CommentsViewSet(viewsets.ModelViewSet):
         # И отбираем только нужные комментарии
         new_queryset = Comment.objects.filter(post=post_id)
         return new_queryset
+
+    def perform_create(self, serializer):
+        return serializer.save(author=self.request.user)
+
+    def perform_update(self, serializer):
+        if serializer.instance.author != self.request.user:
+            raise PermissionDenied("Изменение чужого контента запрещено!")
+        super(CommentsViewSet, self).perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        if instance.author != self.request.user:
+            raise PermissionDenied("Изменение чужого контента запрещено!")
+        instance.delete()
