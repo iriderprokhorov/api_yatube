@@ -1,9 +1,10 @@
 from django.core.exceptions import PermissionDenied
-from rest_framework import viewsets, status
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 
-from posts.models import Post, Group, Comment
-from .serializers import PostSerializer, GroupSerializer, CommentSerializer
+from posts.models import Comment, Group, Post
+
+from .serializers import CommentSerializer, GroupSerializer, PostSerializer
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -37,9 +38,7 @@ class CommentsViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
 
     def get_queryset(self):
-        # Получаем post_id
         post_id = self.kwargs.get("post_id")
-        # И отбираем только нужные комментарии
         new_queryset = Comment.objects.filter(post=post_id)
         return new_queryset
 
